@@ -4,11 +4,12 @@ RAYFLAGS=`pkg-config --cflags --libs raylib`
 EXE=./run
 TRASH=$(EXE)
 
+ifdef MEM_TEST
+CFLAGS += -DMEM_TEST__
+endif
+
 main: main.c
 	$(CC) $(CFLAGS) -o $(EXE) main.c $(RAYFLAGS)
-
-mem_test: main.c
-	$(CC) $(CFLAGS) -o $(EXE) main.c $(RAYFLAGS) -DMEM_TEST__
 
 clean:
 	rm -rf $(TRASH)
