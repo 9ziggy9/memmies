@@ -4,8 +4,9 @@
 #include <string.h>
 
 #include "config.h"
-#include "test.h"
 
+#define LOAD_PROC_INFO
+#include "proc.h"
 
 #define CLOSE_WITH(CODE, MSG)                     \
   do {                                            \
@@ -18,18 +19,26 @@ void exit_clean_procedure(int, void *);
 void poll_key_presses_exit(void);
 
 int main(void) {
-  MEM_TEST_BOOTSTRAP();
   on_exit(exit_clean_procedure, NULL);
+
+#define MEM_CAP_500_MB (1024 * 1024 * 500)
+  PROC_INFO_BOOTSTRAP();
+  PROC_INFO_CAP_MEM(MEM_CAP_500_MB);
+
   SetConfigFlags(FLAG_MSAA_4X_HINT);
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, TITLE);
   SetTargetFPS(TARGET_FPS);
   SetExitKey(KEY_NULL);
+
   while(!WindowShouldClose()) {
     poll_key_presses_exit();
     BeginDrawing();
       ClearBackground(DARKGRAY);
-      MEM_TEST_INFO_BAR();
     EndDrawing();
+    void *prepare_to_die = malloc(50000);
+    if (prepare_to_die == NULL) {
+      fprintf(stderr, "memory shit itself in fear. O.O\n");
+    }
   }
   CloseWindow();
   return EXIT_SUCCESS;
