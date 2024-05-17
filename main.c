@@ -19,7 +19,8 @@
   } while(0)                                      \
 
 void exit_clean_procedure(int, void *);
-void poll_key_presses_exit(Camera3D *, Vector3 *);
+void poll_key_presses(Camera3D *, Vector3 *);
+void poll_mouse_movement(Camera3D *);
 Texture2D gen_mdl_checkerboard(void);
 
 #define SZ_WORLD    100
@@ -36,7 +37,7 @@ Camera3D cam_init_scene(void) {
     .position   = CAM_ORIGIN,
     .target     = WORLD_ORIGIN,
     .up         = (Vector3){0.0f, 1.0f, 0.0f},
-    .fovy       = 45.0f,
+    .fovy       = 90.0f,
     .projection = CAMERA_ORTHOGRAPHIC,
   };
 }
@@ -56,6 +57,21 @@ Texture2D txtr_gen_checkerboard(void) {
   return target.texture;
 }
 
+void DrawBuilding(Vector3 *world, float x, float y,
+             float height, float width, Color c)
+{
+  DrawCubeV(Vector3Add(*world, (Vector3){x, height * 0.5f, y}),
+            (Vector3){width, height, width}, c);
+}
+
+void DrawBuildingL(Vector3 *world, float x, float y,
+             float height, float width, Color c)
+{
+  DrawCubeWiresV(Vector3Add(*world, (Vector3){x, height * 0.5f, y}),
+            (Vector3){width, height, width}, c);
+}
+
+
 int main(void) {
   on_exit(exit_clean_procedure, NULL);
   PROC_INFO_BOOTSTRAP();
@@ -67,9 +83,9 @@ int main(void) {
   SetExitKey(KEY_NULL);
 
   Texture2D txtr_cb = txtr_gen_checkerboard();
-  Model mdl_cb = LoadModelFromMesh(GenMeshPlane(SZ_WORLD * 1.5f,
-                                                SZ_WORLD * 1.5f,
-                                                1, 1));
+  Model mdl_cb = LoadModelFromMesh(GenMeshPlane(SZ_WORLD * 10.0f,
+                                                SZ_WORLD * 10.0f,
+                                                100, 100));
   mdl_cb.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = txtr_cb;
 
   Camera3D cam_scene = cam_init_scene();
@@ -78,12 +94,25 @@ int main(void) {
   Vector3 world_position = WORLD_ORIGIN;
 
   while(!WindowShouldClose()) {
-    poll_key_presses_exit(&cam_scene, &world_position);
-    ClearBackground(GREEN);
+    poll_key_presses(&cam_scene, &world_position);
+    poll_mouse_movement(&cam_scene);
     BeginDrawing();
+      ClearBackground(BLACK);
       BeginMode3D(cam_scene);
-          DrawModel(mdl_cb, world_position, 1.0f, WHITE);
+          DrawModel(mdl_cb, world_position, 0.5f, WHITE);
           DrawSphere(my_position, 1.0f, BLUE);
+          DrawBuildingL(&world_position,
+                       SZ_WORLD - 70.0f, SZ_WORLD * 0.25f,
+                       10.0f, 5.0f, GREEN);
+          DrawBuilding(&world_position,
+                       SZ_WORLD * 0.25f, SZ_WORLD * 0.25f,
+                       10.0f, 5.0f, RED);
+          DrawBuilding(&world_position,
+                       SZ_WORLD - 40.0f, SZ_WORLD  - 40.0f,
+                       20.0f, 3.0f, GRAY);
+          DrawBuilding(&world_position,
+                       SZ_WORLD - 40.0f, SZ_WORLD  - 80.0f,
+                       15.0f, 30.0f, ORANGE);
         EndMode3D();
       PROC_INFO_DRAW(PROC_INFO_FLAG_ALL);
     EndDrawing();
@@ -102,7 +131,13 @@ void exit_clean_procedure(int code, void *resources) {
   exit(code);
 }
 
-void poll_key_presses_exit(Camera3D *cam, Vector3 *pos) {
+void poll_mouse_movement(Camera3D *cam) {
+  #define ZOOM_RATE 10.0f
+  cam->fovy -= GetMouseWheelMove() * ZOOM_RATE;
+  cam->fovy = Clamp(cam->fovy, 8.0f, 92.5f);
+}
+
+void poll_key_presses(Camera3D *cam, Vector3 *pos) {
   if (IsKeyDown(KEY_W)) pos->z += 0.1f;
   if (IsKeyDown(KEY_A)) pos->x += 0.1f;
   if (IsKeyDown(KEY_S)) pos->z -= 0.1f;
