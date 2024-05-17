@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <raylib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "config.h"
 
@@ -18,10 +19,16 @@
 void exit_clean_procedure(int, void *);
 void poll_key_presses_exit(void);
 
+void *mem_alloc(size_t num_bytes) {
+  void *data = malloc(num_bytes);
+  if (data == NULL) exit(EXIT_PROC_MEM_EXCEEDED);
+  return data;
+}
+
 int main(void) {
   on_exit(exit_clean_procedure, NULL);
 
-#define MEM_CAP_500_MB (1024 * 1024 * 500)
+  #define MEM_CAP_500_MB (1000 * 1000 * 500)
   PROC_INFO_BOOTSTRAP();
   PROC_INFO_CAP_MEM(MEM_CAP_500_MB);
 
@@ -34,11 +41,9 @@ int main(void) {
     poll_key_presses_exit();
     BeginDrawing();
       ClearBackground(DARKGRAY);
+      PROC_INFO_DRAW(BLACK);
+      void *we_gon_die = mem_alloc(500000);
     EndDrawing();
-    void *prepare_to_die = malloc(50000);
-    if (prepare_to_die == NULL) {
-      fprintf(stderr, "memory shit itself in fear. O.O\n");
-    }
   }
   CloseWindow();
   return EXIT_SUCCESS;
