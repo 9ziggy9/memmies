@@ -59,8 +59,7 @@ static void open_proc_file(void) {
 static void populate_proc_info(void) {
   #define MAX_LINE_LEN 256
   char line[MAX_LINE_LEN];
-  // TODO: there are better ways to do this, instead of constantly opening file
-  // see inotify
+  // TODO: inotify is a better idea
   open_proc_file();
   while (fgets(line, sizeof(line), PROC_FILE)) {
     if (strncmp(line, "VmSize:", 7) == 0)
