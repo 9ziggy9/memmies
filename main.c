@@ -21,7 +21,8 @@ void poll_key_presses_exit(void);
 
 void *mem_alloc(size_t num_bytes) {
   void *data = malloc(num_bytes);
-  if (data == NULL) exit(EXIT_PROC_MEM_EXCEEDED);
+  if (data == NULL) CLOSE_WITH(EXIT_PROC_MEM_EXCEEDED,
+                               "failed to allocate memory");
   return data;
 }
 
@@ -41,7 +42,7 @@ int main(void) {
     poll_key_presses_exit();
     BeginDrawing();
       ClearBackground(DARKGRAY);
-      PROC_INFO_DRAW(BLACK);
+      PROC_INFO_DRAW(PROC_INFO_FLAG_VIRT | PROC_INFO_FLAG_FPS);
       void *we_gon_die = mem_alloc(500000);
     EndDrawing();
   }

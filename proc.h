@@ -25,9 +25,20 @@ struct proc_info_t {
   size_t text;  // code/text segment information
 };
 
+typedef enum {
+  PROC_INFO_FLAG_PID   = 1 << 0, // 0x00000001
+  PROC_INFO_FLAG_VIRT  = 1 << 1, // 0x00000010
+  PROC_INFO_FLAG_RAM   = 1 << 2,
+  PROC_INFO_FLAG_HEAP  = 1 << 3,
+  PROC_INFO_FLAG_STACK = 1 << 4,
+  PROC_INFO_FLAG_TEXT  = 1 << 5,
+  PROC_INFO_FLAG_FPS   = 1 << 6,
+  PROC_INFO_FLAG_ALL   = 0xFF,
+} PROC_INFO_FLAGS;
+
 void PROC_INFO_BOOTSTRAP(void);
 void PROC_INFO_CAP_MEM(size_t);
-void PROC_INFO_DRAW(Color);
+void PROC_INFO_DRAW(PROC_INFO_FLAGS);
 
 #ifdef LOAD_PROC_INFO
 #define DEBUG_FONT_SZ 16
@@ -99,28 +110,59 @@ void PROC_INFO_CAP_MEM(size_t num_bytes) {
   if (setrlimit(RLIMIT_AS, &MEM_CAP) != 0) exit(EXIT_PROC_MEM_CORRUPTED);
 }
 
-static void PROC_INFO_DRAW_TEXT(Color clr) {
-  char txt_mem[512];
-  char txt_fps[32];
-  populate_proc_info();
-  snprintf(txt_mem, sizeof(txt_mem),
-           "[ mem(kB) --> (pid: %d) ""(virt: %zu) "
-           "(ram: %zu) ""(heap: %zu) "
-           "(stack: %zu) ""(text: %zu) ]",
-           PROC_INFO.pid, PROC_INFO.virt,
-           PROC_INFO.ram, PROC_INFO.heap,
-           PROC_INFO.stack, PROC_INFO.text);
-  snprintf(txt_fps, sizeof(txt_fps), "[ fps --> %d ]", GetFPS());
-  int txt_mem_width = MeasureText(txt_mem, DEBUG_FONT_SZ) + 4;
-  int txt_fps_width = MeasureText(txt_fps, DEBUG_FONT_SZ) + 4;
-  DrawText(txt_fps, SCREEN_WIDTH - txt_fps_width, 1, DEBUG_FONT_SZ, clr);
-  DrawText(txt_mem, SCREEN_WIDTH - txt_mem_width - txt_fps_width,
-            1, DEBUG_FONT_SZ, clr);
+static char *proc_info_text_from_flags(PROC_INFO_FLAGS fs)
+{
+  #define MAX_TXT_LEN 512
+  char *buf = (char *) malloc(MAX_TXT_LEN * sizeof(char));
+  size_t buf_offset = 0;
+  if (fs & PROC_INFO_FLAG_PID)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(pid: %d) ", PROC_INFO.pid);   
+  if (fs & PROC_INFO_FLAG_VIRT)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(virt: %zu) ",  PROC_INFO.virt);
+  if (fs & PROC_INFO_FLAG_RAM)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(ram: %zu) ", PROC_INFO.ram);   
+  if (fs & PROC_INFO_FLAG_HEAP)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(heap: %zu) ", PROC_INFO.heap);
+  if (fs & PROC_INFO_FLAG_STACK)
+    buf_offset +=  snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                            "(stack: %zu) ", PROC_INFO.stack);   
+  if (fs & PROC_INFO_FLAG_TEXT)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(text: %zu) ", PROC_INFO.text);
+  if (fs & PROC_INFO_FLAG_FPS)
+    buf_offset += snprintf(buf + buf_offset, MAX_TXT_LEN - buf_offset,
+                           "(fps: %d) ", GetFPS());
+  return buf;
 }
 
-void PROC_INFO_DRAW(Color clr) {
-  DrawRectangle(0, 0, SCREEN_WIDTH, DEBUG_FONT_SZ, clr);
-  PROC_INFO_DRAW_TEXT(RAYWHITE);
+static void proc_info_draw_text(PROC_INFO_FLAGS fs, Color clr) {
+  char *txt = proc_info_text_from_flags(fs);
+  int txt_width = MeasureText(txt, DEBUG_FONT_SZ) + 4;
+  DrawText(txt, SCREEN_WIDTH - txt_width, 1, DEBUG_FONT_SZ, clr);
+  free(txt);
+}
+
+void PROC_INFO_DRAW(PROC_INFO_FLAGS fs) {
+  populate_proc_info();
+
+  size_t mem_consumed = PROC_INFO.virt;
+  float mem_usage_pct = ((float) mem_consumed /
+                         (float) MEM_CAP.rlim_max) * 1000.0f;
+  printf("%zu %f\n", mem_consumed, mem_usage_pct);
+
+  Color clr = {
+    .r = (unsigned char)(255.0f * mem_usage_pct),
+    .g = (unsigned char)(255.0f * (1.0f - mem_usage_pct)),
+    .b = 0,
+    .a = 255,
+  };
+
+  DrawRectangle(0, 0, SCREEN_WIDTH, DEBUG_FONT_SZ, BLACK);
+  proc_info_draw_text(fs, clr);
 }
 
 #endif // LOAD_PROC_INFO
