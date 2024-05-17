@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <raylib.h>
 #include <string.h>
-#include <signal.h>
 
 #include "config.h"
 
@@ -42,8 +41,8 @@ int main(void) {
     poll_key_presses_exit();
     BeginDrawing();
       ClearBackground(DARKGRAY);
-      PROC_INFO_DRAW(PROC_INFO_FLAG_VIRT | PROC_INFO_FLAG_FPS);
-      void *we_gon_die = mem_alloc(500000);
+      PROC_INFO_DRAW(PROC_INFO_FLAG_ALL);
+      void *we_all_gon_die = mem_alloc(50000);
     EndDrawing();
   }
   CloseWindow();

@@ -152,7 +152,6 @@ void PROC_INFO_DRAW(PROC_INFO_FLAGS fs) {
   size_t mem_consumed = PROC_INFO.virt;
   float mem_usage_pct = ((float) mem_consumed /
                          (float) MEM_CAP.rlim_max) * 1000.0f;
-  printf("%zu %f\n", mem_consumed, mem_usage_pct);
 
   Color clr = {
     .r = (unsigned char)(255.0f * mem_usage_pct),
